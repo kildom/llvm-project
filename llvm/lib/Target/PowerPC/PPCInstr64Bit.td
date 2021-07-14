@@ -1748,5 +1748,5 @@ def : Pat<(int_ppc_tdw g8rc:$A, g8rc:$B, i32:$IMM),
 // trapd
 def : Pat<(int_ppc_trapd g8rc:$A),
           (TDI 24, $A, 0)>;
-def : Pat<(i32 (int_ppc_mfspr i32:$SPR)),
-          (MFSPR $SPR)>;
+def : Pat<(i64 (int_ppc_mfspr i32:$SPR)),
+          (MFSPR8 $SPR)>;

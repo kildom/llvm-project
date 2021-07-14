@@ -15575,15 +15575,10 @@ Value *CodeGenFunction::EmitPPCBuiltinExpr(unsigned BuiltinID,
   case PPC::BI__builtin_ppc_lwarx:
     return emitPPCLoadReserveIntrinsic(*this, BuiltinID, E);
   case PPC::BI__builtin_ppc_mfspr: {
-    dbgs() <<"Hello\n";
-    llvm::Type *src0 = EmitScalarExpr(E->getArg(0))->getType();
-    src0->dump();
-    dbgs() << "Ops size: " << Ops.size() << "\n";
-    Function *F = CGM.getIntrinsic(Intrinsic::ppc_mfspr, src0);
-    // uint64_t Imm = cast<llvm::ConstantInt>(Ops[0])->getZExtValue();
-    // Ops[0] = llvm::ConstantInt::get(Int32Ty, Imm);
+    // llvm::Type *src0 = EmitScalarExpr(E->getArg(0))->getType();
+    dbgs() << "Width: " << Ops[0]->getType()->getPrimitiveSizeInBits() << "\n";
+    Function *F = CGM.getIntrinsic(Intrinsic::ppc_mfspr, Int64Ty);
     Value *temp =  Builder.CreateCall(F, Ops);
-    temp->dump();
     return temp;
   }
   }
