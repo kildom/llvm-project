@@ -13,7 +13,9 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Support/ThreadLocal.h"
 #include <mutex>
+#ifdef _MY_PORT_
 #include <setjmp.h>
+#endif
 #if LLVM_ON_UNIX
 #include <sysexits.h> // EX_IOERR
 #endif
@@ -35,7 +37,9 @@ struct CrashRecoveryContextImpl {
   const CrashRecoveryContextImpl *Next;
 
   CrashRecoveryContext *CRC;
+#ifdef _MY_PORT_
   ::jmp_buf JumpBuffer;
+#endif
   volatile unsigned Failed : 1;
   unsigned SwitchedThread : 1;
   unsigned ValidJumpBuffer : 1;
@@ -77,8 +81,10 @@ public:
     CRC->RetCode = RetCode;
 
     // Jump back to the RunSafely we were called under.
+#ifdef _MY_PORT_
     if (ValidJumpBuffer)
       longjmp(JumpBuffer, 1);
+#endif
 
     // Otherwise let the caller decide of the outcome of the crash. Currently
     // this occurs when using SEH on Windows with MSVC or clang-cl.
@@ -135,16 +141,20 @@ void CrashRecoveryContext::Enable() {
   // FIXME: Shouldn't this be a refcount or something?
   if (gCrashRecoveryEnabled)
     return;
+#ifdef _MY_PORT_
   gCrashRecoveryEnabled = true;
   installExceptionOrSignalHandlers();
+#endif
 }
 
 void CrashRecoveryContext::Disable() {
   std::lock_guard<std::mutex> L(*gCrashRecoveryContextMutex);
   if (!gCrashRecoveryEnabled)
     return;
+#ifdef _MY_PORT_
   gCrashRecoveryEnabled = false;
   uninstallExceptionOrSignalHandlers();
+#endif
 }
 
 void CrashRecoveryContext::registerCleanup(CrashRecoveryContextCleanup *cleanup)
@@ -335,6 +345,7 @@ static void uninstallExceptionOrSignalHandlers() {
 // reliable fashion -- if we get a signal outside of a crash recovery context we
 // simply disable crash recovery and raise the signal again.
 
+#ifdef _MY_PORT_
 #include <signal.h>
 
 static const int Signals[] =
@@ -399,6 +410,7 @@ static void uninstallExceptionOrSignalHandlers() {
   for (unsigned i = 0; i != NumSignals; ++i)
     sigaction(Signals[i], &PrevActions[i], nullptr);
 }
+#endif
 
 #endif // !_WIN32
 
@@ -409,10 +421,12 @@ bool CrashRecoveryContext::RunSafely(function_ref<void()> Fn) {
     CrashRecoveryContextImpl *CRCI = new CrashRecoveryContextImpl(this);
     Impl = CRCI;
 
+#ifdef _MY_PORT_
     CRCI->ValidJumpBuffer = true;
     if (setjmp(CRCI->JumpBuffer) != 0) {
       return false;
     }
+#endif
   }
 
   Fn();
