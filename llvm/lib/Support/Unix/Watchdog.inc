@@ -12,6 +12,10 @@
 
 #include "llvm/Config/config.h"
 
+#ifndef _MY_PORT_
+#undef HAVE_UNISTD_H
+#endif
+
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif

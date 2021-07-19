@@ -46,6 +46,10 @@
 #include "llvm/Target/TargetMachine.h"
 #include <cstdio>
 
+#ifndef _MY_PORT_
+#undef CLANG_HAVE_RLIMITS
+#endif
+
 #ifdef CLANG_HAVE_RLIMITS
 #include <sys/resource.h>
 #endif

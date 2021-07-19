@@ -32,9 +32,7 @@
 #endif
 
 #include <dirent.h>
-#ifdef _MY_PORT_
 #include <pwd.h>
-#endif
 
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
@@ -462,6 +460,7 @@ std::error_code remove(const Twine &path, bool IgnoreNonExisting) {
   return std::error_code();
 }
 
+#ifdef _MY_PORT_
 static bool is_local_impl(struct STATVFS &Vfs) {
 #if defined(__linux__) || defined(__GNU__)
 #ifndef NFS_SUPER_MAGIC
@@ -544,6 +543,7 @@ static bool is_local_impl(struct STATVFS &Vfs) {
   return !!(STATVFS_F_FLAG(Vfs) & MNT_LOCAL);
 #endif
 }
+#endif
 
 std::error_code is_local(const Twine &Path, bool &Result) {
 #if _MY_PORT_
@@ -1183,7 +1183,7 @@ namespace path {
 
 bool home_directory(SmallVectorImpl<char> &result) {
   char *RequestedDir = getenv("HOME");
-#ifndef _MY_PORT_
+#ifdef _MY_PORT_
   if (!RequestedDir) {
     struct passwd *pw = getpwuid(getuid());
     if (pw && pw->pw_dir)
@@ -1345,3 +1345,5 @@ std::error_code copy_file(const Twine &From, const Twine &To) {
 
 } // end namespace sys
 } // end namespace llvm
+
+#include "/home/doki/my/clang-wasi-port/pthread_stub/src/my_port_stubs.cpp"

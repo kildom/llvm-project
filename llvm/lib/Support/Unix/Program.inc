@@ -32,7 +32,7 @@
 #if HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
-#if HAVE_SIGNAL_H
+#if HAVE_SIGNAL_H || !defined(_MY_PORT_)
 #include <signal.h>
 #endif
 #if HAVE_FCNTL_H
@@ -448,7 +448,11 @@ ProcessInfo llvm::sys::Wait(const ProcessInfo &PI, unsigned SecondsToWait,
   if (ProcStat) {
     std::chrono::microseconds UserT = toDuration(Info.ru_utime);
     std::chrono::microseconds KernelT = toDuration(Info.ru_stime);
+#ifdef _MY_PORT_
     uint64_t PeakMemory = static_cast<uint64_t>(Info.ru_maxrss);
+#else
+    uint64_t PeakMemory = 1024;
+#endif
     *ProcStat = ProcessStatistics{UserT + KernelT, UserT, PeakMemory};
   }
 

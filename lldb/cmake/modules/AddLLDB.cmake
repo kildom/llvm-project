@@ -180,11 +180,11 @@ function(add_lldb_executable name)
     set_target_properties(${name} PROPERTIES BUILD_RPATH "${ARG_BUILD_RPATH}")
   endif()
 
-  if (ARG_INSTALL_RPATH)
-    set_target_properties(${name} PROPERTIES
-      BUILD_WITH_INSTALL_RPATH OFF
-      INSTALL_RPATH "${ARG_INSTALL_RPATH}")
-  endif()
+  #if (ARG_INSTALL_RPATH)
+  #  set_target_properties(${name} PROPERTIES
+  #    BUILD_WITH_INSTALL_RPATH OFF
+  #    INSTALL_RPATH "${ARG_INSTALL_RPATH}")
+  #endif()
 
   if(ARG_GENERATE_INSTALL)
     set(install_dest bin)

@@ -28,7 +28,7 @@
 #ifdef HAVE_SYS_STAT_H
 #include <sys/stat.h>
 #endif
-#if HAVE_SIGNAL_H
+#if HAVE_SIGNAL_H || !defined(_MY_PORT_)
 #include <signal.h>
 #endif
 #if defined(HAVE_MALLINFO)

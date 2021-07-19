@@ -30,9 +30,7 @@
 #include <cstring>
 #include <string>
 #include <sys/types.h>
-#ifdef _MY_PORT_
 #include <sys/wait.h>
-#endif
 
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>

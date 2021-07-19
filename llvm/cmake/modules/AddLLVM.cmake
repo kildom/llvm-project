@@ -825,12 +825,14 @@ macro(add_llvm_executable name)
 
   setup_dependency_debugging(${name} ${LLVM_COMMON_DEPENDS})
 
+  if(_MY_PORT_)
   if(NOT ARG_NO_INSTALL_RPATH)
     llvm_setup_rpath(${name})
   elseif (LLVM_LOCAL_RPATH)
     set_target_properties(${name} PROPERTIES
                           BUILD_WITH_INSTALL_RPATH On
                           INSTALL_RPATH "${LLVM_LOCAL_RPATH}")
+  endif()
   endif()
 
   if(DEFINED windows_resource_file)
@@ -2080,10 +2082,12 @@ function(llvm_setup_rpath name)
     return()
   endif()
 
+  if(_MY_PORT_)
   set_target_properties(${name} PROPERTIES
                         BUILD_WITH_INSTALL_RPATH On
                         INSTALL_RPATH "${_install_rpath}"
                         ${_install_name_dir})
+  endif()
 endfunction()
 
 function(setup_dependency_debugging name)
