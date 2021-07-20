@@ -17,6 +17,11 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/Process.h"
 
+#ifndef _MY_PORT_
+#define _WASI_EMULATED_MMAN
+#define HAVE_SYS_MMAN_H
+#endif
+
 #ifdef HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
@@ -43,7 +48,6 @@ extern "C" void sys_icache_invalidate(const void *Addr, size_t len);
 extern "C" void __clear_cache(void *, void*);
 #endif
 
-#ifdef _MY_PORT_
 static int getPosixProtectionFlags(unsigned Flags) {
   switch (Flags & llvm::sys::Memory::MF_RWE_MASK) {
   case llvm::sys::Memory::MF_READ:
@@ -75,7 +79,6 @@ static int getPosixProtectionFlags(unsigned Flags) {
   // Provide a default return value as required by some compilers.
   return PROT_NONE;
 }
-#endif
 
 namespace llvm {
 namespace sys {
@@ -86,7 +89,6 @@ Memory::allocateMappedMemory(size_t NumBytes,
                              unsigned PFlags,
                              std::error_code &EC) {
   EC = std::error_code();
-#if _MY_PORT_
   if (NumBytes == 0)
     return MemoryBlock();
 
@@ -157,13 +159,6 @@ Memory::allocateMappedMemory(size_t NumBytes,
       return MemoryBlock();
   }
 
-#else
-  MemoryBlock Result;
-  if (NumBytes == 0) NumBytes = 1;
-  Result.Address = malloc(NumBytes);
-  Result.AllocatedSize = NumBytes;
-  Result.Flags = PFlags;
-#endif
   return Result;
 }
 
@@ -172,12 +167,8 @@ Memory::releaseMappedMemory(MemoryBlock &M) {
   if (M.Address == nullptr || M.AllocatedSize == 0)
     return std::error_code();
 
-#if _MY_PORT_
   if (0 != ::munmap(M.Address, M.AllocatedSize))
     return std::error_code(errno, std::generic_category());
-#else
-  free(M.Address);
-#endif
 
   M.Address = nullptr;
   M.AllocatedSize = 0;
@@ -187,7 +178,6 @@ Memory::releaseMappedMemory(MemoryBlock &M) {
 
 std::error_code
 Memory::protectMappedMemory(const MemoryBlock &M, unsigned Flags) {
-#if _MY_PORT_
   static const Align PageSize = Align(Process::getPageSizeEstimate());
   if (M.Address == nullptr || M.AllocatedSize == 0)
     return std::error_code();
@@ -223,7 +213,6 @@ Memory::protectMappedMemory(const MemoryBlock &M, unsigned Flags) {
   if (InvalidateCache)
     Memory::InvalidateInstructionCache(M.Address, M.AllocatedSize);
 
-#endif
   return std::error_code();
 }
 
@@ -232,7 +221,6 @@ Memory::protectMappedMemory(const MemoryBlock &M, unsigned Flags) {
 /// platforms.
 void Memory::InvalidateInstructionCache(const void *Addr,
                                         size_t Len) {
-#ifdef _MY_PORT_
 
 // icache invalidation for PPC and ARM.
 #if defined(__APPLE__)
@@ -276,7 +264,6 @@ void Memory::InvalidateInstructionCache(const void *Addr,
 #endif  // end apple
 
   ValgrindDiscardTranslations(Addr, Len);
-#endif
 }
 
 } // namespace sys

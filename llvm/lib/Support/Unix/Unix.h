@@ -18,6 +18,10 @@
 //===          is guaranteed to work on all UNIX variants.
 //===----------------------------------------------------------------------===//
 
+#ifndef _MY_PORT_
+#define _WASI_EMULATED_SIGNAL
+#endif
+
 #include "llvm/Config/config.h"
 #include "llvm/Support/Chrono.h"
 #include "llvm/Support/Errno.h"

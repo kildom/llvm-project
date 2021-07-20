@@ -50,6 +50,10 @@
 #ifdef HAVE_BACKTRACE
 # include BACKTRACE_HEADER         // For backtrace().
 #endif
+#ifndef _MY_PORT_
+#define _WASI_EMULATED_SIGNAL
+#define HAVE_SIGNAL_H 1
+#endif
 #if HAVE_SIGNAL_H
 #include <signal.h>
 #endif
@@ -209,17 +213,12 @@ static StringRef Argv0;
 /// if there is, it's not our direct responsibility. For whatever reason, our
 /// continued execution is no longer desirable.
 static const int IntSigs[] = {
-#ifdef _MY_PORT_
   SIGHUP, SIGINT, SIGTERM, SIGUSR2
-#else
-  0
-#endif
 };
 
 /// Signals that represent that we have a bug, and our prompt termination has
 /// been ordered.
 static const int KillSigs[] = {
-#ifdef _MY_PORT_
   SIGILL, SIGTRAP, SIGABRT, SIGFPE, SIGBUS, SIGSEGV, SIGQUIT
 #ifdef SIGSYS
   , SIGSYS
@@ -233,20 +232,13 @@ static const int KillSigs[] = {
 #ifdef SIGEMT
   , SIGEMT
 #endif
-#else
-  0
-#endif
 };
 
 /// Signals that represent requests for status.
 static const int InfoSigs[] = {
-#ifdef _MY_PORT_
   SIGUSR1
 #ifdef SIGINFO
   , SIGINFO
-#endif
-#else
-  0
 #endif
 };
 
@@ -257,9 +249,7 @@ static const size_t NumSigs =
 
 static std::atomic<unsigned> NumRegisteredSignals = ATOMIC_VAR_INIT(0);
 static struct {
-#ifdef _MY_PORT_
   struct sigaction SA;
-#endif
   int SigNo;
 } RegisteredSignalInfo[NumSigs];
 
@@ -295,7 +285,6 @@ static void CreateSigAltStack() {}
 #endif
 
 static void RegisterHandlers() { // Not signal-safe.
-#ifdef _MY_PORT_
   // The mutex prevents other threads from registering handlers while we're
   // doing it. We also have to protect the handlers and their count because
   // a signal handler could fire while we're registeting handlers.
@@ -344,18 +333,15 @@ static void RegisterHandlers() { // Not signal-safe.
     registerHandler(SIGPIPE, SignalKind::IsKill);
   for (auto S : InfoSigs)
     registerHandler(S, SignalKind::IsInfo);
-#endif
 }
 
 static void UnregisterHandlers() {
-#ifdef _MY_PORT_
   // Restore all of the signal handlers to how they were before we showed up.
   for (unsigned i = 0, e = NumRegisteredSignals.load(); i != e; ++i) {
     sigaction(RegisteredSignalInfo[i].SigNo,
               &RegisteredSignalInfo[i].SA, nullptr);
     --NumRegisteredSignals;
   }
-#endif
 }
 
 /// Process the FilesToRemove list.
@@ -373,17 +359,14 @@ void sys::CleanupOnSignal(uintptr_t Context) {
 
   RemoveFilesToRemove();
 
-#ifdef _MY_PORT_
   if (llvm::is_contained(IntSigs, Sig) || Sig == SIGPIPE)
     return;
 
   llvm::sys::RunSignalHandlers();
-#endif
 }
 
 // The signal handler that runs.
 static RETSIGTYPE SignalHandler(int Sig) {
-#ifdef _MY_PORT_
   // Restore the signal behavior to default, so that the program actually
   // crashes when we return and the signal reissues.  This also ensures that if
   // we crash in our signal handler that the program will terminate immediately
@@ -423,7 +406,6 @@ static RETSIGTYPE SignalHandler(int Sig) {
   // re-raising the signal.  Raise the signal manually in those cases.
   if (Sig == SIGILL || Sig == SIGFPE || Sig == SIGTRAP)
     raise(Sig);
-#endif
 #endif
 }
 

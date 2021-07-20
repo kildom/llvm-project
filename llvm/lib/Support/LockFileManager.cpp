@@ -30,7 +30,6 @@
 
 #ifndef _MY_PORT_
 #undef LLVM_ON_UNIX
-#define LLVM_ON_UNIX 0
 #endif
 
 #ifdef _WIN32
