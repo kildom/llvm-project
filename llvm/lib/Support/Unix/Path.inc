@@ -310,8 +310,8 @@ std::string getMainExecutable(const char *argv0, void *MainAddr) {
 #ifdef _MY_PORT_
 #error GetMainExecutable is not implemented on this host yet.
 #else
-  const char* __my_GetMainExecutable(void);
-  return __my_GetMainExecutable();
+  const char* _my_port_GetMainExecutable(void);
+  return _my_port_GetMainExecutable();
 #endif
 #endif
   return "";

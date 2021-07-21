@@ -197,6 +197,7 @@ private:
 }
 
 std::error_code Process::FixupStandardFileDescriptors() {
+#ifdef _MY_PORT_
   int NullFD = -1;
   FDCloser FDC(NullFD);
   const int StandardFDs[] = {STDIN_FILENO, STDOUT_FILENO, STDERR_FILENO};
@@ -227,6 +228,7 @@ std::error_code Process::FixupStandardFileDescriptors() {
     else if (dup2(NullFD, StandardFD) < 0)
       return std::error_code(errno, std::generic_category());
   }
+#endif _MY_PORT_
   return std::error_code();
 }
 

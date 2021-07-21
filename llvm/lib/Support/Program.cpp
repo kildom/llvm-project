@@ -15,6 +15,8 @@
 #include "llvm/Config/llvm-config.h"
 #include "llvm/Support/raw_ostream.h"
 #include <system_error>
+#include <sstream>
+#include <forward_list>
 using namespace llvm;
 using namespace sys;
 
@@ -23,32 +25,64 @@ using namespace sys;
 //===          independent code.
 //===----------------------------------------------------------------------===//
 
-static bool Execute(ProcessInfo &PI, StringRef Program,
-                    ArrayRef<StringRef> Args, Optional<ArrayRef<StringRef>> Env,
-                    ArrayRef<Optional<StringRef>> Redirects,
-                    unsigned MemoryLimit, std::string *ErrMsg);
-
 int sys::ExecuteAndWait(StringRef Program, ArrayRef<StringRef> Args,
                         Optional<ArrayRef<StringRef>> Env,
                         ArrayRef<Optional<StringRef>> Redirects,
                         unsigned SecondsToWait, unsigned MemoryLimit,
                         std::string *ErrMsg, bool *ExecutionFailed,
                         Optional<ProcessStatistics> *ProcStat) {
-  assert(Redirects.empty() || Redirects.size() == 3);
-  ProcessInfo PI;
-  if (Execute(PI, Program, Args, Env, Redirects, MemoryLimit, ErrMsg)) {
-    if (ExecutionFailed)
-      *ExecutionFailed = false;
-    ProcessInfo Result =
-        Wait(PI, SecondsToWait, /*WaitUntilTerminates=*/SecondsToWait == 0,
-             ErrMsg, ProcStat);
-    return Result.ReturnCode;
+
+  char **c_arg = new char*[Args.size()];
+  const char **c_env = Env ? new const char*[Env->size()] : nullptr;
+  int c_env_count = 0;
+  const char *c_redir[3];
+
+  std::forward_list<std::string> cache;
+
+  for (size_t i = 0; i < Args.size(); i++) {
+    cache.push_front(Args[i].str());
+    c_arg[i] = (char *)cache.front().c_str();
   }
 
-  if (ExecutionFailed)
-    *ExecutionFailed = true;
+  if (c_env) {
+    c_env_count = Env->size();
+    for (int i = 0; i < c_env_count; i++) {
+      cache.push_front((*Env)[i].str());
+      c_env[i] = cache.front().c_str();
+    }
+  }
 
-  return -1;
+  for (size_t i = 0; i < 3; i++) {
+    if (Redirects[i]) {
+      cache.push_front(Redirects[i]->str());
+      c_redir[i] = cache.front().c_str();
+    } else {
+      c_redir[i] = nullptr;
+    }
+  }
+
+  int _my_port_exec(const char* program, const char** args, int arg_count, const char** envs, int env_count, const char** redir);
+
+  int r = _my_port_exec(Program.str().c_str(), (const char**)c_arg, Args.size(), c_env, c_env_count, c_redir);
+
+  cache.clear();
+  delete[] c_arg;
+  delete[] c_env;
+
+  if (ExecutionFailed)
+    *ExecutionFailed = r < 0;
+
+  if (r < 0 && ErrMsg) {
+      *ErrMsg = "Program execution failed";
+  }
+
+  if (ProcStat && *ProcStat) {
+    (*ProcStat)->TotalTime = std::chrono::microseconds(1000000);
+    (*ProcStat)->UserTime = std::chrono::microseconds(1000000);
+    (*ProcStat)->PeakMemory = 1000000;
+  }
+
+  return r;
 }
 
 ProcessInfo sys::ExecuteNoWait(StringRef Program, ArrayRef<StringRef> Args,
@@ -56,15 +90,14 @@ ProcessInfo sys::ExecuteNoWait(StringRef Program, ArrayRef<StringRef> Args,
                                ArrayRef<Optional<StringRef>> Redirects,
                                unsigned MemoryLimit, std::string *ErrMsg,
                                bool *ExecutionFailed) {
-  assert(Redirects.empty() || Redirects.size() == 3);
-  ProcessInfo PI;
-  if (ExecutionFailed)
-    *ExecutionFailed = false;
-  if (!Execute(PI, Program, Args, Env, Redirects, MemoryLimit, ErrMsg))
-    if (ExecutionFailed)
-      *ExecutionFailed = true;
+  if (ErrMsg) {
+      *ErrMsg = "Asynchronous program execution not supported!";
+  }
 
-  return PI;
+  if (ExecutionFailed)
+    *ExecutionFailed = true;
+
+  return ProcessInfo();
 }
 
 bool sys::commandLineFitsWithinSystemLimits(StringRef Program,
