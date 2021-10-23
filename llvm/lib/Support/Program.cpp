@@ -35,7 +35,7 @@ int sys::ExecuteAndWait(StringRef Program, ArrayRef<StringRef> Args,
   char **c_arg = new char*[Args.size()];
   const char **c_env = Env ? new const char*[Env->size()] : nullptr;
   int c_env_count = 0;
-  const char *c_redir[3];
+  const char *c_redir[3] = { nullptr, nullptr, nullptr };
 
   std::forward_list<std::string> cache;
 
@@ -52,7 +52,7 @@ int sys::ExecuteAndWait(StringRef Program, ArrayRef<StringRef> Args,
     }
   }
 
-  for (size_t i = 0; i < 3; i++) {
+  for (size_t i = 0; i < Redirects.size(); i++) {
     if (Redirects[i]) {
       cache.push_front(Redirects[i]->str());
       c_redir[i] = cache.front().c_str();
